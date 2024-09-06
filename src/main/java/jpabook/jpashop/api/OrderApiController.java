@@ -28,7 +28,9 @@ public class OrderApiController {
     private final OrderRepository orderRepository;
     private final OrderQueryRepository orderQueryRepository;
 
-    // V1. 엔티티 직접 노출
+    /* 엔티티 조회 */
+
+    // V1. 엔티티 직접 노출, 엔티티를 조회해서 그대로 반환
     @GetMapping("/api/v1/orders")
     public List<Order> ordersV1() {
         List<Order> all = orderRepository.findAllByString(new OrderSearch());
@@ -41,6 +43,7 @@ public class OrderApiController {
         return all;
     }
 
+    // V2. 엔티티 조회 후 DTO로 변환
     @GetMapping("/api/v2/orders")
     public List<OrderDto> ordersV2() {
         List<Order> orders = orderRepository.findAllByString(new OrderSearch());
@@ -85,6 +88,7 @@ public class OrderApiController {
     }
 
 
+    // V3. 페치 조인으로 쿼리 수 최적화
     @GetMapping("/api/v3/orders")
     public List<OrderDto> ordersV3() {
         List<Order> orders = orderRepository.findAllWithItem();
@@ -94,6 +98,7 @@ public class OrderApiController {
         return result;
     }
 
+    // V3.1. 컬렉션 페이징과 한계 돌파
     @GetMapping("/api/v3.1/orders")
     public List<OrderDto> ordersV3_page(@RequestParam(value = "offset", defaultValue = "0") int offset,
                                         @RequestParam(value = "limit", defaultValue = "100") int limit) {
@@ -104,16 +109,24 @@ public class OrderApiController {
         return result;
     }
 
+
+    /* DTO 직접 조회 */
+
+    // V4. JPA에서 DTO를 직접 조회. 코드 단순. 특정 주문 한건만 조회하면 이 방식 사용해도 성능 잘 나옴
     @GetMapping("/api/v4/orders")
     public List<OrderQueryDto> ordersV4() {
         return orderQueryRepository.findOrderQueryDtos();
     }
 
+    // V5. 컬렉션 조회 최적화. 코드 복잡. 여러 주문을 한꺼번에 조회하는 경우 최적화된 방식
+    // 일대다 관계인 컬렉션은 IN 절을 활용해서 메모리에 미리 조회해서 최적화
     @GetMapping("/api/v5/orders")
     public List<OrderQueryDto> ordersV5() {
         return orderQueryRepository.findAllByDto_optimization();
     }
 
+    // V6. 플랫 데이터 최적화. 완전 다른 접근 방식. 쿼리 한번으로 최적화 되었지만 Order를 기준으로 페이징 불가능
+    // JOIN 결과를 그대로 조회 후 애플리케이션에서 원하는 모양으로 직접 변환
     @GetMapping("/api/v6/orders")
     public List<OrderQueryDto> ordersV6() {
         List<OrderFlatDto> flats = orderQueryRepository.findAllByDto_flat();
